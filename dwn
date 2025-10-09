@@ -1,0 +1,119 @@
+#!/usr/bin/env python3
+
+import sys,os,shutil,json
+print(sys.argv)
+
+# functions 
+
+def cmdhelp(files_list):
+ print("This function will print data about cmd 'Dwn'")
+
+  #parse data
+def parsedata(function_to_execute,flags,functions,files_list):
+ return_func = cmdhelp
+ for args in sys.argv[1:]:
+  if args in flags:
+   flags[args] = True
+  elif args in functions:
+   return_func = functions[args]
+  else:
+   files_list.append(args)
+ return return_func
+
+  #main functions
+def install(files_list):
+ print("---Install function is running---")
+ 
+ if not files_list:
+  print("No file as argument given")
+  return
+
+ if flags["-long"]:
+  print(flags,functions,files_list)
+ 
+ for file in files_list:
+  _ ,extension = os.path.splitext(file)
+ 
+  if extension == ".AppImage":
+   install_appimage(file)
+
+ print("---End of Install---")
+
+def list(file):
+ with open("dwn_data.json","r") as file:
+  json_data = json.load(file)
+  json_data = json_data["items"]
+  json_data = json.dumps(json_data,indent=3)
+  print(json_data)
+
+def uninstall(files_list):
+ print("---Uninstall function is running---")
+ if not files_list:
+  print("No file as argument given")
+  return  
+ for file in files_list:
+  _,extension = os.path.splitext(file)
+ 
+  if extension == ".AppImage":
+   uninstall_appimage(file)
+ 
+ print("---End of Uninstall---")
+
+  #helper functions
+def install_appimage(file):
+ #for now only work for single file given 
+ try:
+  shutil.move(file,appimage_loc)
+
+  new_entry = {"name":file,"location":appimage_loc}
+  record_in_json(new_entry)
+ except Exception as e:
+  print(f"Error Ocurred while Installing AppImage: {e}")
+
+def uninstall_appimage(file): 
+ with open("dwn_data.json","r") as file:
+  json_data = json.load(file)
+  for fileindex in json_data["items"]:
+   if fileindex["name"] == file:
+    print(f"{fileindex} : {file}") 
+ 
+ file_to_remove = input("Enter corresponding id to Uninstall: ") 
+ file_loc = json_data["items"][file_to_remove]["location"]
+ 
+ os.remove(file_loc) 
+
+def record_in_json(new_entry):
+ with open("dwn_data.json","r+") as file:
+  json_data = json.load(file)
+  id = int(json_data["metadata"]["total_entries"])
+  json_data["items"][id] = new_entry
+  json_data["metadata"]["total_entries"] = id+1
+  
+  file.seek(0)
+  json.dump(json_data,file,indent=4)
+ 
+def remove_from_record(id):
+ with open("dwn_data.json","r+") as file:
+  json_data = json.load(file)
+  json_data["items"].pop(id)
+  json_data["metadata"]["total_entries"] = int(json_data["metadata"][total_entries]) - 1
+  
+  file.seek(0)
+  json.dump(json_data,file,indent=4)
+
+# Variable and dicts for flags and functions
+functions = {
+"--install":install,
+"--list":list,
+"--uninstall":uninstall
+ }
+flags = {
+ "-long":False
+}
+files_list = []
+function_to_execute = cmdhelp
+appimage_loc = os.path.expanduser("~")+"/Desktop/dwn/application"
+
+#function calls
+function_to_execute = parsedata(function_to_execute,flags,functions,files_list)
+function_to_execute(files_list)
