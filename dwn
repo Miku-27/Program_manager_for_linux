@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+##### if a appimage is removed we get inconsistency in id and the total_entries which uses simple i+1 , i-1 will break since some entries would be like 1,2,3,5
+##### store a id key in each items dict so i can access each id when i am uisng .values() in the uninstall_appimage loop so i can access the inner values in a single look up and still get access to ids
+##### check gemini for more info about above comments
 import sys,os,shutil,json
 print(sys.argv)
 
@@ -39,7 +42,7 @@ def install(files_list):
 
  print("---End of Install---")
 
-def list(file):
+def list_programs(file):
  with open("dwn_data.json","r") as file:
   json_data = json.load(file)
   json_data = json_data["items"]
@@ -70,41 +73,47 @@ def install_appimage(file):
  except Exception as e:
   print(f"Error Ocurred while Installing AppImage: {e}")
 
-def uninstall_appimage(file): 
+def uninstall_appimage(filename): 
+
  with open("dwn_data.json","r") as file:
   json_data = json.load(file)
   for fileindex in json_data["items"]:
-   if fileindex["name"] == file:
-    print(f"{fileindex} : {file}") 
+   if json_data["items"][fileindex]["name"] == filename:
+    print(f"{fileindex} : {filename}") 
  
  file_to_remove = input("Enter corresponding id to Uninstall: ") 
  file_loc = json_data["items"][file_to_remove]["location"]
- 
- os.remove(file_loc) 
+  
+ os.remove(os.path.join(file_loc,filename))
+
+ remove_from_record(file_to_remove) 
 
 def record_in_json(new_entry):
  with open("dwn_data.json","r+") as file:
   json_data = json.load(file)
-  id = int(json_data["metadata"]["total_entries"])
+  id = int(json_data["metadata"]["next_new_id"])
   json_data["items"][id] = new_entry
-  json_data["metadata"]["total_entries"] = id+1
+  json_data["metadata"]["total_entries"] = int(json_data["metadata"]["total_entries"])+1
+  json_data["metadata"]["next_new_id"] = int(json_data["metadata"]["next_new_id"])+1
   
   file.seek(0)
   json.dump(json_data,file,indent=4)
- 
+  file.truncate() 
+
 def remove_from_record(id):
  with open("dwn_data.json","r+") as file:
   json_data = json.load(file)
-  json_data["items"].pop(id)
-  json_data["metadata"]["total_entries"] = int(json_data["metadata"][total_entries]) - 1
-  
+  print(json_data["items"].pop(id))
+  json_data["metadata"]["total_entries"] = int(json_data["metadata"]["total_entries"]) - 1
+ 
   file.seek(0)
   json.dump(json_data,file,indent=4)
+  file.truncate()
 
 # Variable and dicts for flags and functions
 functions = {
 "--install":install,
-"--list":list,
+"--list":list_programs,
 "--uninstall":uninstall
  }
 flags = {
