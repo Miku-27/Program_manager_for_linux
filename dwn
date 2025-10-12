@@ -4,6 +4,8 @@
 ##### store a id key in each items dict so i can access each id when i am uisng .values() in the uninstall_appimage loop so i can access the inner values in a single look up and still get access to ids
 ##### check gemini for more info about above comments
 import sys,os,shutil,json
+from pathlib import Path
+
 print(sys.argv)
 
 # functions 
@@ -48,6 +50,19 @@ def list_programs(file):
   json_data = json_data["items"]
   json_data = json.dumps(json_data,indent=3)
   print(json_data)
+
+def create_json(file_list):
+ json_struct = {
+        "metadata": {
+            "total_entries": 0,
+            "next_new_id": 0
+        },
+        "items": {} 
+    }
+
+ with open("dwn_data.json","w") as file:
+  json.dump(json_struct,file,indent=4)
+
 
 def uninstall(files_list):
  print("---Uninstall function is running---")
@@ -110,11 +125,19 @@ def remove_from_record(id):
   json.dump(json_data,file,indent=4)
   file.truncate()
 
+def if_json_exist(path_to_json):
+ json_file = Path(path_to_json)
+ if json_file.exists():
+  return True
+ else:
+  return False
+
 # Variable and dicts for flags and functions
 functions = {
 "--install":install,
 "--list":list_programs,
-"--uninstall":uninstall
+"--uninstall":uninstall,
+"--initjson":create_json
  }
 flags = {
  "-long":False
@@ -122,7 +145,13 @@ flags = {
 files_list = []
 function_to_execute = cmdhelp
 appimage_loc = os.path.expanduser("~")+"/Desktop/dwn/application"
-
+path_to_json = "./dwn_data.json"
 #function calls
+
 function_to_execute = parsedata(function_to_execute,flags,functions,files_list)
+print(function_to_execute)
+if (not if_json_exist(path_to_json)) and function_to_execute != create_json:
+ print("Json file necessary for Storing data not found. Run 'dwn --initjson' to resolve error")
+ sys.exit(1)
+
 function_to_execute(files_list)
