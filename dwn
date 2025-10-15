@@ -45,7 +45,7 @@ def install(files_list):
  print("---End of Install---")
 
 def list_programs(file):
- with open("dwn_data.json","r") as file:
+ with open(NAME_OF_JSON,"r") as file:
   json_data = json.load(file)
   json_data = json_data["items"]
   json_data = json.dumps(json_data,indent=3)
@@ -60,7 +60,7 @@ def create_json(file_list):
         "items": {} 
     }
 
- with open("dwn_data.json","w") as file:
+ with open(NAME_OF_JSON,"w") as file:
   json.dump(json_struct,file,indent=4)
 
 
@@ -80,6 +80,13 @@ def uninstall(files_list):
   #helper functions
 def install_appimage(file):
  #for now only work for single file given 
+ 
+ path = Path(appimage_loc)
+ if not (path.exists() and path.is_dir()):
+  print("Error: AppImage Installation DIR does not exist: ",appimage_loc)
+  sys.exit(1)
+ 
+ exist_in_json(file)
  try:
   shutil.move(file,appimage_loc)
 
@@ -90,7 +97,7 @@ def install_appimage(file):
 
 def uninstall_appimage(filename): 
 
- with open("dwn_data.json","r") as file:
+ with open(NAME_OF_JSON,"r") as file:
   json_data = json.load(file)
   for fileindex in json_data["items"]:
    if json_data["items"][fileindex]["name"] == filename:
@@ -104,7 +111,7 @@ def uninstall_appimage(filename):
  remove_from_record(file_to_remove) 
 
 def record_in_json(new_entry):
- with open("dwn_data.json","r+") as file:
+ with open(NAME_OF_JSON,"r+") as file:
   json_data = json.load(file)
   id = int(json_data["metadata"]["next_new_id"])
   json_data["items"][id] = new_entry
@@ -116,7 +123,7 @@ def record_in_json(new_entry):
   file.truncate() 
 
 def remove_from_record(id):
- with open("dwn_data.json","r+") as file:
+ with open(NAME_OF_JSON,"r+") as file:
   json_data = json.load(file)
   print(json_data["items"].pop(id))
   json_data["metadata"]["total_entries"] = int(json_data["metadata"]["total_entries"]) - 1
@@ -124,6 +131,14 @@ def remove_from_record(id):
   file.seek(0)
   json.dump(json_data,file,indent=4)
   file.truncate()
+
+def exist_in_json(file_name):
+ with open(NAME_OF_JSON,'r') as file:
+  json_data = json.load(file)
+  for file_entry in json_data['items']:
+   if json_data["items"][file_entry]["name"] == file_name:
+    print(f"Error: File with name {file_name} already exists in file location {appimage_loc}")
+    sys.exit(1)
 
 def if_json_exist(path_to_json):
  json_file = Path(path_to_json)
@@ -142,14 +157,16 @@ functions = {
 flags = {
  "-long":False
 }
+
 files_list = []
 function_to_execute = cmdhelp
 appimage_loc = os.path.expanduser("~")+"/Desktop/dwn/application"
 path_to_json = "./dwn_data.json"
+NAME_OF_JSON = "dwn_data.json"
 #function calls
 
 function_to_execute = parsedata(function_to_execute,flags,functions,files_list)
-print(function_to_execute)
+
 if (not if_json_exist(path_to_json)) and function_to_execute != create_json:
  print("Json file necessary for Storing data not found. Run 'dwn --initjson' to resolve error")
  sys.exit(1)
